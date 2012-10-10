@@ -14,6 +14,13 @@
       directory="stylesheets"
       layer=".interfaces.IPlonesocialMicroblogLayer"
       />
-  
+
+  <browser:page
+        name="microblog_funkload"
+        for="Products.CMFCore.interfaces.ISiteRoot"
+        layer=".interfaces.IPlonesocialMicroblogLayer"
+        class=".funkload.FunkloadView"
+        permission="zope2.View"
+        />
 
 </configure>
