@@ -19,6 +19,7 @@ class IStatusUpdate(Interface):
     creation_date = schema.Date(title=_(u"Creation date"))
     tags = Attribute("Tags/keywords")
     context_UUID = Attribute("UUID of context (e.g. a plonesocial.space)")
+    thread = Attribute("status.id from parent")
 
 
 class IStatusContainer(Interface):

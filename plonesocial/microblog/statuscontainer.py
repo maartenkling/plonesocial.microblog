@@ -67,6 +67,8 @@ class BaseStatusContainer(Persistent, Explicit):
         self._tag_mapping = OOBTree.OOBTree()
         # index by context (string UUID) -> (object TreeSet(long statusid))
         self._uuid_mapping = OOBTree.OOBTree()
+        # index by thread (string UUID) -> (object TreeSet(long statusid))
+        self._threaded_mapping = OOBTree.OOBTree()
 
     def add(self, status, context=None):
         self._check_permission("add")
@@ -82,6 +84,7 @@ class BaseStatusContainer(Persistent, Explicit):
         self._idx_tag(status)
         self._idx_context(status)
         self._notify(status)
+        self._idx_threaded(status)
 
     def _check_status(self, status):
         if not IStatusUpdate.providedBy(status):
@@ -127,6 +130,16 @@ class BaseStatusContainer(Persistent, Explicit):
             self._uuid_mapping.insert(uuid, LLBTree.LLTreeSet())
             self._uuid_mapping[uuid].insert(status.id)
 
+    def _idx_threaded(self, status):
+        if not getattr(status, 'thread', False):
+            return
+        tread_id = status.thread
+        if tread_id:
+            # If the key was already in the collection, there is no change
+            # create tag treeset if not already present
+            self._threaded_mapping.insert(tread_id, LLBTree.LLTreeSet())
+            self._threaded_mapping[tread_id].insert(status.id)
+
     # enable unittest override of plone.app.uuid lookup
     def _context2uuid(self, context):
         return IUUID(context)
@@ -135,6 +148,7 @@ class BaseStatusContainer(Persistent, Explicit):
         self._user_mapping.clear()
         self._tag_mapping.clear()
         self._uuid_mapping.clear()
+        self._threaded_mapping.clear()
         return self._status_mapping.clear()
 
     ## blocked IBTree methods to protect index consistency
@@ -178,6 +192,28 @@ class BaseStatusContainer(Persistent, Explicit):
     iteritems = items
     iterkeys = keys
     itervalues = values
+
+    ## threaded accessors
+
+    def thread_items(self, thread, min=None, max=None, limit=100, tag=None):
+        return ((key, self.get(key)) for key
+                in self.thread_keys(thread, min, max, limit, tag))
+
+    def thread_values(self, thread, min=None, max=None, limit=100, tag=None):
+        return (self.get(key) for key
+                in self.thread_keys(thread, min, max, limit, tag))
+
+    def thread_keys(self, thread, min=None, max=None, limit=100, tag=None):
+        if not thread:
+            return ()
+        if tag and tag not in self._tag_mapping:
+            return ()
+        mapping = self._threaded_mapping.get(thread)
+        # returns unchanged mapping if tag is None
+        mapping = self._keys_tag(tag, mapping)
+
+        return longkeysortreverse(mapping,
+                                  min, max, limit)
 
     ## user_* accessors
 
