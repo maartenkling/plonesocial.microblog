@@ -43,7 +43,8 @@ class StatusForm(extensible.ExtensibleForm, form.Form):
                                               'mime_type',
                                               'creator',
                                               'userid',
-                                              'creation_date')
+                                              'creation_date',
+                                              'thread_id')
 
     def updateFields(self):
         super(StatusForm, self).updateFields()
@@ -68,7 +69,10 @@ class StatusForm(extensible.ExtensibleForm, form.Form):
 
         container = queryUtility(IMicroblogTool)
         microblog_context = get_microblog_context(self.context)
-        status = StatusUpdate(data['text'], context=microblog_context)
+        thread_id = self.request.form.get('thread_id', None)
+        status = StatusUpdate(data['text'],
+                              context=microblog_context,
+                              thread_id=thread_id)
 
         # debugging only
 #        container.clear()
@@ -100,6 +104,8 @@ class StatusProvider(object):
         self.context = context
         self.request = request
         self.view = view
+        # optional give thread to provider
+        self.thread_id = None
         self.portlet_data = None  # used by microblog portlet
         # force microblog context to IMicroblogContext or SiteRoot
         for obj in aq_chain(self.context):
